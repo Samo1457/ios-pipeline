@@ -1,0 +1,33 @@
+# App Store Connect authentication (session file, NEVER commit)
+appstore_auth.json
+
+# Environment variables and secrets
+.env
+.env.local
+*.p8
+*.pem
+
+# Flutter
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+ios/Pods/
+ios/Podfile.lock
+
+# IDE
+.vscode/
+.idea/
+*.iml
+*.xcworkspace/
+.DS_Store
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test & screenshots
+screenshots/debug/
+*.png
+test_capture.png

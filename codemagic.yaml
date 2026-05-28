@@ -1,0 +1,149 @@
+# codemagic.yaml — CI/CD Pipeline for Flutter iOS + Android
+
+workflows:
+  # ============================================
+  # WORKFLOW 1: Build & Deploy iOS + Android
+  # ============================================
+  ios-android-release:
+    name: Build & Release
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+
+    environment:
+      flutter: stable
+      xcode: latest
+      groups:
+        - app_store_connect  # Contains: APP_STORE_CONNECT_KEY_IDENTIFIER, APP_STORE_CONNECT_ISSUER_ID, APP_STORE_CONNECT_PRIVATE_KEY
+      vars:
+        BUNDLE_ID: "com.YOURORG.APP_NAME"  # ← CHANGE THIS
+        APP_NAME: "APP_NAME"               # ← CHANGE THIS
+
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+
+    scripts:
+      # --- iOS Setup ---
+      - name: Set up code signing
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain initialize
+          app-store-connect certificates list --type IOS_DISTRIBUTION --save
+          keychain add-certificates
+          xcode-project use-profiles
+
+      - name: Install dependencies
+        script: |
+          flutter pub get
+
+      - name: Install CocoaPods
+        script: |
+          cd ios && pod install --repo-update
+
+      # --- Build iOS ---
+      - name: Build iOS IPA
+        script: |
+          flutter build ipa \
+            --release \
+            --export-options-plist=/Users/builder/export_options.plist
+
+      # --- Build Android ---
+      - name: Build Android APK
+        script: |
+          flutter build apk --release
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - build/app/outputs/flutter-apk/*.apk
+      - screenshots/**
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false  # Manual review first
+
+  # ============================================
+  # WORKFLOW 2: Screenshot Generation
+  # ============================================
+  screenshots:
+    name: Generate App Store Screenshots
+    max_build_duration: 30
+    instance_type: mac_mini_m2
+
+    environment:
+      flutter: stable
+      xcode: latest
+      groups:
+        - app_store_connect
+
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: screenshots/*
+          include: true
+
+    scripts:
+      - name: Install dependencies
+        script: |
+          flutter pub get
+          cd ios && pod install --repo-update
+
+      - name: Set up code signing
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain initialize
+          app-store-connect certificates list --type IOS_DISTRIBUTION --save
+          keychain add-certificates
+          xcode-project use-profiles
+
+      - name: Run screenshot tests
+        script: |
+          flutter test integration_test/screenshot_test.dart \
+            --dart-define=SCREENSHOTS=true
+        test_report: build/test-results/**/*.xml
+
+    artifacts:
+      - screenshots/**
+      - build/test-results/**
+
+  # ============================================
+  # WORKFLOW 3: Tests Only (PR validation)
+  # ============================================
+  tests:
+    name: Run Tests
+    max_build_duration: 15
+    instance_type: mac_mini_m2
+
+    environment:
+      flutter: stable
+
+    triggering:
+      events:
+        - pull_request
+      branch_patterns:
+        - pattern: main
+          include: true
+
+    scripts:
+      - name: Install dependencies
+        script: flutter pub get
+
+      - name: Analyze code
+        script: flutter analyze --no-fatal-infos
+
+      - name: Run tests
+        script: flutter test
+
+    publishing:
+      email:
+        recipients:
+          - your@email.com  # ← CHANGE THIS
