@@ -1,46 +1,35 @@
-# launch.ps1 — LE script unique qui fait TOUT
-# ══════════════════════════════════════════════════════════════════
-#
-#  USAGE :
-#
-#    git clone https://github.com/Samo1457/ios-pipeline.git && cd ios-pipeline && .\launch.ps1
-#
-# ══════════════════════════════════════════════════════════════════
+# launch.ps1
+# USAGE: cd ios-pipeline ; .\launch.ps1
 
 $ErrorActionPreference = "Continue"
 
-# ─── Banner ───
-Write-Host @"
+Clear-Host
+Write-Host ""
+Write-Host "  =================================================" -ForegroundColor Cyan
+Write-Host "   iOS App Automation Pipeline" -ForegroundColor Cyan
+Write-Host "   Windows + Flutter + Claude Code + VS Code" -ForegroundColor Cyan
+Write-Host "  =================================================" -ForegroundColor Cyan
+Write-Host ""
 
-  ╔═══════════════════════════════════════════════════════════╗
-  ║                                                           ║
-  ║   🚀  iOS App Automation Pipeline                        ║
-  ║       Windows + Flutter + Claude Code + VS Code           ║
-  ║                                                           ║
-  ╚═══════════════════════════════════════════════════════════╝
+# === STEP 0 - Interactive config ===
+Write-Host "--- Configuration du projet ---" -ForegroundColor Yellow
+Write-Host ""
 
-"@ -ForegroundColor Cyan
-
-# ══════════════════════════════════════════════════════════════
-# STEP 0 — Interactive config
-# ══════════════════════════════════════════════════════════════
-
-Write-Host "═══ Configuration du projet ═══`n" -ForegroundColor Yellow
-
-# App name
+# App name (obligatoire)
 $AppName = ""
 while ([string]::IsNullOrWhiteSpace($AppName)) {
-    $AppName = Read-Host "  📱 Nom de l'app (ex: sleep-tracker)"
+    $AppName = Read-Host "  Nom de l'app (ex: sleep-tracker)"
     if ([string]::IsNullOrWhiteSpace($AppName)) {
-        Write-Host "     ❌ Le nom est obligatoire`n" -ForegroundColor Red
+        Write-Host "  Le nom est obligatoire" -ForegroundColor Red
     }
 }
 
 # Project path
 $defaultDir = "$env:USERPROFILE\Projects\ios-apps\$AppName"
-Write-Host "`n  📁 Dossier du projet" -ForegroundColor White
-Write-Host "     Par défaut: $defaultDir" -ForegroundColor DarkGray
-$customDir = Read-Host "     Chemin (Entrée = défaut, ou tape un chemin)"
+Write-Host ""
+Write-Host "  Dossier du projet" -ForegroundColor White
+Write-Host "  Defaut: $defaultDir" -ForegroundColor DarkGray
+$customDir = Read-Host "  Chemin (Entree = defaut)"
 if ([string]::IsNullOrWhiteSpace($customDir)) {
     $projectPath = $defaultDir
 } else {
@@ -48,127 +37,120 @@ if ([string]::IsNullOrWhiteSpace($customDir)) {
 }
 
 # Bundle org
-$defaultOrg = "com.samo"
-Write-Host "`n  🏷️  Bundle ID organisation" -ForegroundColor White
-Write-Host "     Par défaut: $defaultOrg" -ForegroundColor DarkGray
-$customOrg = Read-Host "     Org (Entrée = défaut, ou tape ex: com.monnom)"
+Write-Host ""
+Write-Host "  Bundle ID organisation" -ForegroundColor White
+Write-Host "  Defaut: com.samo" -ForegroundColor DarkGray
+$customOrg = Read-Host "  Org (Entree = com.samo)"
 if ([string]::IsNullOrWhiteSpace($customOrg)) {
-    $BundleOrg = $defaultOrg
+    $BundleOrg = "com.samo"
 } else {
     $BundleOrg = $customOrg
 }
 
 # Category (optional)
-Write-Host "`n  🔍 Catégorie pour la recherche d'idée (optionnel)" -ForegroundColor White
-Write-Host "     Ex: health, productivity, finance, utilities" -ForegroundColor DarkGray
-$Category = Read-Host "     Catégorie (Entrée = skip)"
+Write-Host ""
+Write-Host "  Categorie de recherche (optionnel)" -ForegroundColor White
+Write-Host "  Ex: health, productivity, finance, utilities" -ForegroundColor DarkGray
+$Category = Read-Host "  Categorie (Entree = skip)"
 
 # Flutter create
-Write-Host "`n  📦 Créer le projet Flutter maintenant ?" -ForegroundColor White
-Write-Host "     Si tu as déjà un projet Flutter, tape 'n'" -ForegroundColor DarkGray
-$doFlutter = Read-Host "     Créer ? (o/n, défaut: o)"
-if ([string]::IsNullOrWhiteSpace($doFlutter)) { $doFlutter = "o" }
+Write-Host ""
+Write-Host "  Creer le projet Flutter maintenant ?" -ForegroundColor White
+$doFlutterRaw = Read-Host "  (o/n, Entree = o)"
+if ([string]::IsNullOrWhiteSpace($doFlutterRaw)) { $doFlutter = "o" } else { $doFlutter = $doFlutterRaw }
 
+# Safe flutter name
 $safeName = $AppName -replace '-', '_' -replace '[^\w]', ''
 
-# ─── Recap ───
-Write-Host @"
+# Recap
+Write-Host ""
+Write-Host "  -----------------------------------------" -ForegroundColor White
+Write-Host "  App:       $AppName" -ForegroundColor White
+Write-Host "  Bundle:    $BundleOrg.$safeName" -ForegroundColor White
+Write-Host "  Dossier:   $projectPath" -ForegroundColor White
+if ([string]::IsNullOrWhiteSpace($Category)) {
+    Write-Host "  Categorie: (skip)" -ForegroundColor White
+} else {
+    Write-Host "  Categorie: $Category" -ForegroundColor White
+}
+if ($doFlutter -eq "o") {
+    Write-Host "  Flutter:   oui" -ForegroundColor White
+} else {
+    Write-Host "  Flutter:   non" -ForegroundColor White
+}
+Write-Host "  -----------------------------------------" -ForegroundColor White
+Write-Host ""
 
-  ┌─────────────────────────────────────────────┐
-  │  Récap                                       │
-  │  App:       $AppName
-  │  Bundle:    $BundleOrg.$safeName
-  │  Dossier:   $projectPath
-  │  Catégorie: $(if ($Category) { $Category } else { "(skip)" })
-  │  Flutter:   $(if ($doFlutter -eq "o") { "oui" } else { "non" })
-  └─────────────────────────────────────────────┘
-"@ -ForegroundColor White
-
-$confirm = Read-Host "  ▶️  On lance ? (o/n)"
+$confirm = Read-Host "  On lance ? (o/n)"
 if ($confirm -ne "o") {
-    Write-Host "`n  Annulé.`n" -ForegroundColor Yellow
+    Write-Host "  Annule." -ForegroundColor Yellow
     exit 0
 }
 
 Write-Host ""
 
-# ══════════════════════════════════════════════════════════════
-# 1. CHECK + INSTALL DEPENDENCIES
-# ══════════════════════════════════════════════════════════════
+# === STEP 1 - Dependencies ===
+Write-Host "--- 1/8  Dependances ---" -ForegroundColor Yellow
 
-Write-Host "═══ 1/8  Dépendances ═══" -ForegroundColor Yellow
-
-# Node.js
 $hasNode = $false
-try { node --version 2>$null | Out-Null; $hasNode = $true; Write-Host "  ✅ Node.js" -ForegroundColor Green } catch {}
-if (-not $hasNode) { Write-Host "  ❌ Node.js manquant → https://nodejs.org" -ForegroundColor Red; exit 1 }
+try { node --version 2>$null | Out-Null; $hasNode = $true; Write-Host "  OK  Node.js" -ForegroundColor Green } catch {}
+if (-not $hasNode) { Write-Host "  MANQUANT Node.js -> https://nodejs.org" -ForegroundColor Red; exit 1 }
 
-# Git
-try { git --version 2>$null | Out-Null; Write-Host "  ✅ Git" -ForegroundColor Green }
-catch { Write-Host "  ❌ Git manquant → https://git-scm.com" -ForegroundColor Red; exit 1 }
+try { git --version 2>$null | Out-Null; Write-Host "  OK  Git" -ForegroundColor Green }
+catch { Write-Host "  MANQUANT Git -> https://git-scm.com" -ForegroundColor Red; exit 1 }
 
-# Flutter
 $hasFlutter = $false
-try { flutter --version 2>$null | Out-Null; $hasFlutter = $true; Write-Host "  ✅ Flutter" -ForegroundColor Green } catch {}
-if (-not $hasFlutter) { Write-Host "  ⚠️  Flutter manquant → https://docs.flutter.dev/get-started/install/windows" -ForegroundColor Yellow }
+try { flutter --version 2>$null | Out-Null; $hasFlutter = $true; Write-Host "  OK  Flutter" -ForegroundColor Green } catch {}
+if (-not $hasFlutter) { Write-Host "  WARN Flutter non installe -> https://docs.flutter.dev/get-started/install/windows" -ForegroundColor Yellow }
 
-# VS Code
 $hasCode = $false
-try { code --version 2>$null | Out-Null; $hasCode = $true; Write-Host "  ✅ VS Code" -ForegroundColor Green }
-catch { Write-Host "  ⚠️  VS Code manquant → https://code.visualstudio.com" -ForegroundColor Yellow }
+try { code --version 2>$null | Out-Null; $hasCode = $true; Write-Host "  OK  VS Code" -ForegroundColor Green }
+catch { Write-Host "  WARN VS Code non trouve -> https://code.visualstudio.com" -ForegroundColor Yellow }
 
-# Claude Code — auto-install
-try { claude --version 2>$null | Out-Null; Write-Host "  ✅ Claude Code" -ForegroundColor Green }
+try { claude --version 2>$null | Out-Null; Write-Host "  OK  Claude Code" -ForegroundColor Green }
 catch {
-    Write-Host "  📦 Installation de Claude Code..." -ForegroundColor Gray
+    Write-Host "  Installation Claude Code..." -ForegroundColor Gray
     npm install -g @anthropic-ai/claude-code 2>$null
-    Write-Host "  ✅ Claude Code installé" -ForegroundColor Green
+    Write-Host "  OK  Claude Code installe" -ForegroundColor Green
 }
 
-# Playwright CLI — auto-install
-try { playwright-cli --version 2>$null | Out-Null; Write-Host "  ✅ Playwright CLI" -ForegroundColor Green }
+try { playwright-cli --version 2>$null | Out-Null; Write-Host "  OK  Playwright CLI" -ForegroundColor Green }
 catch {
-    Write-Host "  📦 Installation de Playwright CLI + navigateur..." -ForegroundColor Gray
-    npm install -g @playwright/cli@latest 2>$null
+    Write-Host "  Installation Playwright CLI..." -ForegroundColor Gray
+    npm install -g "@playwright/cli@latest" 2>$null
     playwright-cli install-browser 2>$null
-    Write-Host "  ✅ Playwright CLI installé" -ForegroundColor Green
+    Write-Host "  OK  Playwright CLI installe" -ForegroundColor Green
 }
 
 Write-Host ""
 
-# ══════════════════════════════════════════════════════════════
-# 2. CREATE PROJECT DIRECTORY + COPY SCAFFOLD
-# ══════════════════════════════════════════════════════════════
+# === STEP 2 - Create project ===
+Write-Host "--- 2/8  Creation du projet ---" -ForegroundColor Yellow
 
-Write-Host "═══ 2/8  Création du projet ═══" -ForegroundColor Yellow
-
-# Save current location (the cloned repo)
 $scaffoldSource = Get-Location
 
 if (Test-Path $projectPath) {
-    Write-Host "  ⚠️  $projectPath existe déjà" -ForegroundColor Yellow
-    $ow = Read-Host "  Écraser ? (o/n)"
-    if ($ow -eq "o") { Remove-Item -Path $projectPath -Recurse -Force }
-    else { Write-Host "  → On continue avec l'existant" -ForegroundColor Gray }
+    Write-Host "  WARN $projectPath existe deja" -ForegroundColor Yellow
+    $ow = Read-Host "  Ecraser ? (o/n)"
+    if ($ow -eq "o") {
+        Remove-Item -Path $projectPath -Recurse -Force
+    }
 }
 
 if (-not (Test-Path $projectPath)) {
     New-Item -ItemType Directory -Path $projectPath -Force | Out-Null
 }
 
-# Copy scaffold files to the new project
-$filesToCopy = @(
-    "SKILL.md", "CLAUDE.md", "experience.md", "codemagic.yaml", ".gitignore"
-)
+$filesToCopy = @("SKILL.md", "CLAUDE.md", "experience.md", "codemagic.yaml", ".gitignore")
 foreach ($f in $filesToCopy) {
     $src = Join-Path $scaffoldSource $f
     if (Test-Path $src) { Copy-Item $src -Destination $projectPath -Force }
 }
 
-# Copy directories
-@("scripts", "docs", "screenshots", "verification", "research") | ForEach-Object {
-    $src = Join-Path $scaffoldSource $_
-    $dst = Join-Path $projectPath $_
+$dirsToCopy = @("scripts", "docs", "screenshots", "verification", "research")
+foreach ($d in $dirsToCopy) {
+    $src = Join-Path $scaffoldSource $d
+    $dst = Join-Path $projectPath $d
     if (Test-Path $src) {
         Copy-Item $src -Destination $dst -Recurse -Force
     } else {
@@ -176,135 +158,123 @@ foreach ($f in $filesToCopy) {
     }
 }
 
-# Ensure screenshot subdirs exist
-@("screenshots/appstore", "screenshots/debug", "screenshots/test") | ForEach-Object {
-    $d = Join-Path $projectPath $_
+$screenshotDirs = @("screenshots\appstore", "screenshots\debug", "screenshots\test")
+foreach ($sd in $screenshotDirs) {
+    $d = Join-Path $projectPath $sd
     if (-not (Test-Path $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
 }
 
 Set-Location $projectPath
-Write-Host "  ✅ Projet créé: $projectPath`n" -ForegroundColor Green
+Write-Host "  OK  Projet cree: $projectPath" -ForegroundColor Green
+Write-Host ""
 
-# ══════════════════════════════════════════════════════════════
-# 3. FLUTTER CREATE
-# ══════════════════════════════════════════════════════════════
+# === STEP 3 - Flutter create ===
+Write-Host "--- 3/8  Flutter ---" -ForegroundColor Yellow
 
-Write-Host "═══ 3/8  Flutter ═══" -ForegroundColor Yellow
-
-if ($doFlutter -eq "o" -and $hasFlutter -and -not (Test-Path "pubspec.yaml")) {
+if ($doFlutter -eq "o" -and $hasFlutter -and (-not (Test-Path "pubspec.yaml"))) {
     flutter create --org $BundleOrg --project-name $safeName . 2>$null
-    Write-Host "  ✅ flutter create ($BundleOrg.$safeName)`n" -ForegroundColor Green
+    Write-Host "  OK  flutter create ($BundleOrg.$safeName)" -ForegroundColor Green
 } elseif (Test-Path "pubspec.yaml") {
-    Write-Host "  ⏭️  pubspec.yaml existe déjà`n" -ForegroundColor Gray
+    Write-Host "  SKIP pubspec.yaml existe deja" -ForegroundColor Gray
 } elseif ($doFlutter -ne "o") {
-    Write-Host "  ⏭️  Skip (choix utilisateur)`n" -ForegroundColor Gray
+    Write-Host "  SKIP choix utilisateur" -ForegroundColor Gray
 } else {
-    Write-Host "  ⏭️  Flutter non installé`n" -ForegroundColor Yellow
+    Write-Host "  SKIP Flutter non installe" -ForegroundColor Yellow
 }
 
-# ══════════════════════════════════════════════════════════════
-# 4. INSTALL SKILLS
-# ══════════════════════════════════════════════════════════════
+Write-Host ""
 
-Write-Host "═══ 4/8  Skills IA ═══" -ForegroundColor Yellow
+# === STEP 4 - Skills ===
+Write-Host "--- 4/8  Skills IA ---" -ForegroundColor Yellow
 
-Write-Host "  📦 App Store Preflight..." -ForegroundColor Gray
+Write-Host "  Installation App Store Preflight..." -ForegroundColor Gray
 npx skills add truongduy2611/app-store-preflight-skills 2>$null
-Write-Host "  ✅ Preflight (100+ Apple rejection rules)" -ForegroundColor Green
+Write-Host "  OK  Preflight (100+ Apple rejection rules)" -ForegroundColor Green
 
-Write-Host "  📦 Playwright CLI skills..." -ForegroundColor Gray
+Write-Host "  Installation Playwright skills..." -ForegroundColor Gray
 playwright-cli install --skills 2>$null
-Write-Host "  ✅ Playwright skills" -ForegroundColor Green
+Write-Host "  OK  Playwright skills" -ForegroundColor Green
 
-Write-Host "  ℹ️  Axiom → dans Claude Code: /plugin marketplace add CharlesWiltgen/Axiom`n" -ForegroundColor DarkGray
+Write-Host "  INFO Axiom -> dans Claude Code: /plugin marketplace add CharlesWiltgen/Axiom" -ForegroundColor DarkGray
+Write-Host ""
 
-# ══════════════════════════════════════════════════════════════
-# 5. UPDATE CODEMAGIC CONFIG
-# ══════════════════════════════════════════════════════════════
-
-Write-Host "═══ 5/8  Config Codemagic ═══" -ForegroundColor Yellow
+# === STEP 5 - Codemagic config ===
+Write-Host "--- 5/8  Config Codemagic ---" -ForegroundColor Yellow
 
 if (Test-Path "codemagic.yaml") {
-    (Get-Content "codemagic.yaml" -Raw) `
-        -replace 'com\.YOURORG\.APP_NAME', "$BundleOrg.$safeName" `
-        -replace 'APP_NAME: "APP_NAME"', "APP_NAME: `"$safeName`"" |
-        Set-Content "codemagic.yaml" -Encoding UTF8
-    Write-Host "  ✅ codemagic.yaml → $BundleOrg.$safeName`n" -ForegroundColor Green
+    $content = Get-Content "codemagic.yaml" -Raw
+    $content = $content -replace 'com\.YOURORG\.APP_NAME', "$BundleOrg.$safeName"
+    $content = $content -replace 'APP_NAME: "APP_NAME"', "APP_NAME: `"$safeName`""
+    $content | Set-Content "codemagic.yaml" -Encoding UTF8
+    Write-Host "  OK  codemagic.yaml -> $BundleOrg.$safeName" -ForegroundColor Green
 } else {
-    Write-Host "  ⏭️  Pas de codemagic.yaml`n" -ForegroundColor Gray
+    Write-Host "  SKIP codemagic.yaml non trouve" -ForegroundColor Gray
 }
 
-# ══════════════════════════════════════════════════════════════
-# 6. GIT INIT
-# ══════════════════════════════════════════════════════════════
+Write-Host ""
 
-Write-Host "═══ 6/8  Git ═══" -ForegroundColor Yellow
+# === STEP 6 - Git ===
+Write-Host "--- 6/8  Git ---" -ForegroundColor Yellow
 
 if (Test-Path ".git") { Remove-Item -Path ".git" -Recurse -Force 2>$null }
 git init 2>$null | Out-Null
 git add -A 2>$null
-git commit -m "feat: $AppName — initial scaffold" 2>$null | Out-Null
-Write-Host "  ✅ Git init + premier commit`n" -ForegroundColor Green
+git commit -m "feat: $AppName initial scaffold" 2>$null | Out-Null
+Write-Host "  OK  Git init + premier commit" -ForegroundColor Green
+Write-Host ""
 
-# ══════════════════════════════════════════════════════════════
-# 7. OPEN VS CODE
-# ══════════════════════════════════════════════════════════════
-
-Write-Host "═══ 7/8  VS Code ═══" -ForegroundColor Yellow
+# === STEP 7 - VS Code ===
+Write-Host "--- 7/8  VS Code ---" -ForegroundColor Yellow
 
 if ($hasCode) {
     code $projectPath 2>$null
-    Write-Host "  ✅ VS Code ouvert`n" -ForegroundColor Green
+    Write-Host "  OK  VS Code ouvert" -ForegroundColor Green
 } else {
-    Write-Host "  ⚠️  VS Code non trouvé — ouvre le dossier manuellement: $projectPath`n" -ForegroundColor Yellow
+    Write-Host "  WARN Ouvre manuellement: $projectPath" -ForegroundColor Yellow
 }
 
-# ══════════════════════════════════════════════════════════════
-# 8. GENERATE CLAUDE CODE PROMPT
-# ══════════════════════════════════════════════════════════════
+Write-Host ""
 
-Write-Host "═══ 8/8  Prompt Claude Code ═══" -ForegroundColor Yellow
+# === STEP 8 - Claude Code prompt ===
+Write-Host "--- 8/8  Prompt Claude Code ---" -ForegroundColor Yellow
 
-$prompt = "read @SKILL.md`nread @CLAUDE.md`nread @experience.md"
+$promptLines = @(
+    "read @SKILL.md",
+    "read @CLAUDE.md",
+    "read @experience.md"
+)
 
 if (-not [string]::IsNullOrWhiteSpace($Category)) {
-    $prompt += "`n`nStart research phase for category `"$Category`". Find at least 5 shippable iOS app ideas. Use Playwright CLI for Google Trends and Reddit validation. Use iTunes Search API for App Store saturation check. Score each idea (Demand x Saturation x Feasibility) and present the top 5 ranked."
+    $promptLines += ""
+    $promptLines += "Start research phase for category `"$Category`". Find at least 5 shippable iOS app ideas. Use Playwright CLI for Google Trends and Reddit validation. Use iTunes Search API for saturation check. Score each idea (Demand x Saturation x Feasibility) and present the top 5 ranked."
 }
 
-$prompt | Set-Content -Path ".claude-init.md" -Encoding UTF8
+$promptLines -join "`n" | Set-Content -Path ".claude-init.md" -Encoding UTF8
+Write-Host "  OK  Prompt sauvegarde dans .claude-init.md" -ForegroundColor Green
+Write-Host ""
 
-Write-Host @"
-
-  ╔═══════════════════════════════════════════════════════════╗
-  ║                                                           ║
-  ║                    ✅ C'EST PRÊT !                       ║
-  ║                                                           ║
-  ╠═══════════════════════════════════════════════════════════╣
-  ║                                                           ║
-  ║  📁 $projectPath
-  ║  📦 $BundleOrg.$safeName
-  ║                                                           ║
-  ║  Dans le terminal VS Code, tape :                         ║
-  ║                                                           ║
-  ║    claude                                                 ║
-  ║                                                           ║
-  ║  Puis :                                                   ║
-  ║                                                           ║
-  ║    read @SKILL.md                                         ║
-  ║    read @CLAUDE.md                                        ║
-  ║    read @experience.md                                    ║
-"@ -ForegroundColor Green
+# === DONE ===
+Write-Host "  =================================================" -ForegroundColor Green
+Write-Host "                   C'EST PRET !" -ForegroundColor Green
+Write-Host "  =================================================" -ForegroundColor Green
+Write-Host ""
+Write-Host "  Dossier: $projectPath" -ForegroundColor White
+Write-Host "  Bundle:  $BundleOrg.$safeName" -ForegroundColor White
+Write-Host ""
+Write-Host "  Dans le terminal VS Code:" -ForegroundColor White
+Write-Host ""
+Write-Host "    claude" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "  Puis:" -ForegroundColor White
+Write-Host "    read @SKILL.md" -ForegroundColor Cyan
+Write-Host "    read @CLAUDE.md" -ForegroundColor Cyan
+Write-Host "    read @experience.md" -ForegroundColor Cyan
 
 if (-not [string]::IsNullOrWhiteSpace($Category)) {
-    Write-Host "  ║                                                           ║" -ForegroundColor Green
-    Write-Host "  ║    Start research phase for `"$Category`"" -ForegroundColor Green
+    Write-Host "    Start research phase for `"$Category`"" -ForegroundColor Cyan
 }
 
-Write-Host @"
-  ║                                                           ║
-  ║  Première fois seulement :                                ║
-  ║    /plugin marketplace add CharlesWiltgen/Axiom           ║
-  ║                                                           ║
-  ╚═══════════════════════════════════════════════════════════╝
-
-"@ -ForegroundColor Green
+Write-Host ""
+Write-Host "  Premiere fois seulement:" -ForegroundColor White
+Write-Host "    /plugin marketplace add CharlesWiltgen/Axiom" -ForegroundColor DarkGray
+Write-Host ""
