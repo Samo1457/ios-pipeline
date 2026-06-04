@@ -1,0 +1,2 @@
+# PowerShell scripts must use CRLF line endings for Windows PowerShell
+*.ps1 text eol=crlf

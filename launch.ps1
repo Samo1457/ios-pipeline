@@ -1,4 +1,4 @@
-# launch.ps1
+﻿# launch.ps1
 # USAGE: cd ios-pipeline ; .\launch.ps1
 
 $ErrorActionPreference = "Continue"
@@ -18,7 +18,7 @@ Write-Host ""
 # App name (obligatoire)
 $AppName = ""
 while ([string]::IsNullOrWhiteSpace($AppName)) {
-    $AppName = Read-Host "  Nom de l'app (ex: sleep-tracker)"
+    $AppName = Read-Host "  Nom de l app (ex: sleep-tracker)"
     if ([string]::IsNullOrWhiteSpace($AppName)) {
         Write-Host "  Le nom est obligatoire" -ForegroundColor Red
     }
@@ -255,7 +255,7 @@ Write-Host ""
 
 # === DONE ===
 Write-Host "  =================================================" -ForegroundColor Green
-Write-Host "                   C'EST PRET !" -ForegroundColor Green
+Write-Host "                   C EST PRET !" -ForegroundColor Green
 Write-Host "  =================================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "  Dossier: $projectPath" -ForegroundColor White
