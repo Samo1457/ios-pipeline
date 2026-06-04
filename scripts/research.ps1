@@ -1,4 +1,4 @@
-# research.ps1 — Phase 1: App Idea Research Automation
+﻿# research.ps1 — Phase 1: App Idea Research Automation
 # Uses: Playwright CLI (browser automation) + iTunes Search API
 # Usage: .\scripts\research.ps1 -Category "health"
 

@@ -1,4 +1,4 @@
-# appstore_upload.ps1 — Phase 5.5: App Store Connect Automation
+﻿# appstore_upload.ps1 — Phase 5.5: App Store Connect Automation
 # Uses: Playwright CLI for browser automation
 # Usage: .\scripts\appstore_upload.ps1 -AppName "MyApp" -BundleId "com.org.myapp"
 

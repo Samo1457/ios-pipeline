@@ -1,7 +1,17 @@
-﻿# launch.ps1
+﻿#Requires -Version 5.1
+# launch.ps1
 # USAGE: cd ios-pipeline ; .\launch.ps1
+#
+# Contraintes d encodage (voir HANDOFF):
+#  - ASCII strict dans le code, aucun accent, aucune apostrophe dans les strings
+#  - pas de heredoc avec variables
+#  - fichier sauvegarde en UTF-8 BOM + fins de ligne CRLF
 
 $ErrorActionPreference = "Continue"
+
+# Dossier du scaffold = dossier ou se trouve ce script (robuste, peu importe le CWD)
+$scaffoldSource = $PSScriptRoot
+if ([string]::IsNullOrWhiteSpace($scaffoldSource)) { $scaffoldSource = (Get-Location).Path }
 
 Clear-Host
 Write-Host ""
@@ -96,26 +106,29 @@ $hasNode = $false
 try { node --version 2>$null | Out-Null; $hasNode = $true; Write-Host "  OK  Node.js" -ForegroundColor Green } catch {}
 if (-not $hasNode) { Write-Host "  MANQUANT Node.js -> https://nodejs.org" -ForegroundColor Red; exit 1 }
 
-try { git --version 2>$null | Out-Null; Write-Host "  OK  Git" -ForegroundColor Green }
-catch { Write-Host "  MANQUANT Git -> https://git-scm.com" -ForegroundColor Red; exit 1 }
+$hasGit = $false
+try { git --version 2>$null | Out-Null; $hasGit = $true; Write-Host "  OK  Git" -ForegroundColor Green } catch {}
+if (-not $hasGit) { Write-Host "  MANQUANT Git -> https://git-scm.com" -ForegroundColor Red; exit 1 }
 
 $hasFlutter = $false
 try { flutter --version 2>$null | Out-Null; $hasFlutter = $true; Write-Host "  OK  Flutter" -ForegroundColor Green } catch {}
 if (-not $hasFlutter) { Write-Host "  WARN Flutter non installe -> https://docs.flutter.dev/get-started/install/windows" -ForegroundColor Yellow }
 
 $hasCode = $false
-try { code --version 2>$null | Out-Null; $hasCode = $true; Write-Host "  OK  VS Code" -ForegroundColor Green }
-catch { Write-Host "  WARN VS Code non trouve -> https://code.visualstudio.com" -ForegroundColor Yellow }
+try { code --version 2>$null | Out-Null; $hasCode = $true; Write-Host "  OK  VS Code" -ForegroundColor Green } catch {}
+if (-not $hasCode) { Write-Host "  WARN VS Code non trouve -> https://code.visualstudio.com" -ForegroundColor Yellow }
 
-try { claude --version 2>$null | Out-Null; Write-Host "  OK  Claude Code" -ForegroundColor Green }
-catch {
+$hasClaude = $false
+try { claude --version 2>$null | Out-Null; $hasClaude = $true; Write-Host "  OK  Claude Code" -ForegroundColor Green } catch {}
+if (-not $hasClaude) {
     Write-Host "  Installation Claude Code..." -ForegroundColor Gray
     npm install -g @anthropic-ai/claude-code 2>$null
     Write-Host "  OK  Claude Code installe" -ForegroundColor Green
 }
 
-try { playwright-cli --version 2>$null | Out-Null; Write-Host "  OK  Playwright CLI" -ForegroundColor Green }
-catch {
+$hasPlaywright = $false
+try { playwright-cli --version 2>$null | Out-Null; $hasPlaywright = $true; Write-Host "  OK  Playwright CLI" -ForegroundColor Green } catch {}
+if (-not $hasPlaywright) {
     Write-Host "  Installation Playwright CLI..." -ForegroundColor Gray
     npm install -g "@playwright/cli@latest" 2>$null
     playwright-cli install-browser 2>$null
@@ -126,8 +139,6 @@ Write-Host ""
 
 # === STEP 2 - Create project ===
 Write-Host "--- 2/8  Creation du projet ---" -ForegroundColor Yellow
-
-$scaffoldSource = Get-Location
 
 if (Test-Path $projectPath) {
     Write-Host "  WARN $projectPath existe deja" -ForegroundColor Yellow
@@ -141,7 +152,7 @@ if (-not (Test-Path $projectPath)) {
     New-Item -ItemType Directory -Path $projectPath -Force | Out-Null
 }
 
-$filesToCopy = @("SKILL.md", "CLAUDE.md", "experience.md", "codemagic.yaml", ".gitignore")
+$filesToCopy = @("SKILL.md", "CLAUDE.md", "experience.md", "codemagic.yaml", ".gitignore", ".gitattributes")
 foreach ($f in $filesToCopy) {
     $src = Join-Path $scaffoldSource $f
     if (Test-Path $src) { Copy-Item $src -Destination $projectPath -Force }
@@ -203,10 +214,12 @@ Write-Host "--- 5/8  Config Codemagic ---" -ForegroundColor Yellow
 
 if (Test-Path "codemagic.yaml") {
     $content = Get-Content "codemagic.yaml" -Raw
-    $content = $content -replace 'com\.YOURORG\.APP_NAME', "$BundleOrg.$safeName"
-    $content = $content -replace 'APP_NAME: "APP_NAME"', "APP_NAME: `"$safeName`""
+    $newBundle = $BundleOrg + "." + $safeName
+    $newAppLine = 'APP_NAME: "' + $safeName + '"'
+    $content = $content -replace 'com\.YOURORG\.APP_NAME', $newBundle
+    $content = $content -replace 'APP_NAME: "APP_NAME"', $newAppLine
     $content | Set-Content "codemagic.yaml" -Encoding UTF8
-    Write-Host "  OK  codemagic.yaml -> $BundleOrg.$safeName" -ForegroundColor Green
+    Write-Host "  OK  codemagic.yaml -> $newBundle" -ForegroundColor Green
 } else {
     Write-Host "  SKIP codemagic.yaml non trouve" -ForegroundColor Gray
 }
@@ -246,7 +259,7 @@ $promptLines = @(
 
 if (-not [string]::IsNullOrWhiteSpace($Category)) {
     $promptLines += ""
-    $promptLines += "Start research phase for category `"$Category`". Find at least 5 shippable iOS app ideas. Use Playwright CLI for Google Trends and Reddit validation. Use iTunes Search API for saturation check. Score each idea (Demand x Saturation x Feasibility) and present the top 5 ranked."
+    $promptLines += "Start research phase for category $Category. Find at least 5 shippable iOS app ideas. Use Playwright CLI for Google Trends and Reddit validation. Use iTunes Search API for saturation check. Score each idea (Demand x Saturation x Feasibility) and present the top 5 ranked."
 }
 
 $promptLines -join "`n" | Set-Content -Path ".claude-init.md" -Encoding UTF8
@@ -271,7 +284,7 @@ Write-Host "    read @CLAUDE.md" -ForegroundColor Cyan
 Write-Host "    read @experience.md" -ForegroundColor Cyan
 
 if (-not [string]::IsNullOrWhiteSpace($Category)) {
-    Write-Host "    Start research phase for `"$Category`"" -ForegroundColor Cyan
+    Write-Host "    Start research phase for $Category" -ForegroundColor Cyan
 }
 
 Write-Host ""

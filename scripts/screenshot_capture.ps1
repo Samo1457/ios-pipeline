@@ -1,4 +1,4 @@
-# screenshot_capture.ps1 — iPhone Screenshot Capture via USB
+﻿# screenshot_capture.ps1 — iPhone Screenshot Capture via USB
 # Requires: IosScreenCaptureTool OR pymobiledevice3
 # Usage: .\scripts\screenshot_capture.ps1 -Mode auto
 # Usage: .\scripts\screenshot_capture.ps1 -Mode guided -Screens "home,settings,profile,detail"
